@@ -18,8 +18,9 @@ RUN pnpm install --frozen-lockfile
 # Копируем исходный код
 COPY . .
 
-# Собираем проект
-RUN pnpm build
+# Собираем только веб-приложение и UI пакет
+RUN pnpm --filter=web build
+RUN pnpm --filter=@repo/ui build
 
 # Этап production
 FROM node:18-alpine AS production
@@ -41,8 +42,8 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=base /app/apps/web/.next ./apps/web/.next
 COPY --from=base /app/apps/web/public ./apps/web/public
 
-# Копируем UI пакет (если есть dist, иначе копируем исходники)
-COPY --from=base /app/packages/ui ./packages/ui
+# Копируем UI пакет
+COPY --from=base /app/packages/ui/dist ./packages/ui/dist
 
 # Копируем необходимые конфигурационные файлы
 COPY apps/web/next.config.js ./apps/web/

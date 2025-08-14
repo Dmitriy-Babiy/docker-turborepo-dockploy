@@ -11,16 +11,15 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/web/package.json ./apps/web/
-COPY apps/docs/package.json ./apps/docs/
 
-# Устанавливаем зависимости (как обычно pnpm install)
+# Устанавливаем зависимости
 RUN pnpm install --frozen-lockfile
 
 # Копируем исходный код
 COPY . .
 
-# Собираем все приложения (как обычно pnpm build)
-RUN pnpm build
+# Собираем только веб-приложение
+RUN pnpm --filter=web build
 
 # Этап production
 FROM node:18-alpine AS production
@@ -34,16 +33,13 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/web/package.json ./apps/web/
-COPY apps/docs/package.json ./apps/docs/
 
 # Устанавливаем зависимости (включая dev для TypeScript)
 RUN pnpm install --frozen-lockfile
 
-# Копируем собранные приложения
+# Копируем собранное веб-приложение
 COPY --from=base /app/apps/web/.next ./apps/web/.next
 COPY --from=base /app/apps/web/public ./apps/web/public
-COPY --from=base /app/apps/docs/.next ./apps/docs/.next
-COPY --from=base /app/apps/docs/public ./apps/docs/public
 
 # Копируем UI пакет исходники (TypeScript файлы)
 COPY --from=base /app/packages/ui/src ./packages/ui/src
@@ -51,15 +47,17 @@ COPY --from=base /app/packages/ui/src ./packages/ui/src
 # Копируем необходимые конфигурационные файлы
 COPY apps/web/next.config.js ./apps/web/
 COPY apps/web/tsconfig.json ./apps/web/
-COPY apps/docs/next.config.js ./apps/docs/
-COPY apps/docs/tsconfig.json ./apps/docs/
 COPY packages/ui/tsconfig.json ./packages/ui/
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
 
-# Открываем порты для обоих приложений
-EXPOSE 3000 3001
+# Открываем порт только для веб-приложения
+EXPOSE 3000
 
-# Запускаем оба приложения
-CMD ["pnpm", "start"]
+# Создаем скрипт для запуска веб-приложения
+RUN echo '#!/bin/sh\n\
+cd /app/apps/web && PORT=3000 pnpm start' > /app/start.sh && chmod +x /app/start.sh
+
+# Запускаем веб-приложение
+CMD ["/app/start.sh"]

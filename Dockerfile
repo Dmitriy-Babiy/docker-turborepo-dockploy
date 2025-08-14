@@ -40,7 +40,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Копируем собранное приложение
 COPY --from=base /app/apps/web/.next ./apps/web/.next
 COPY --from=base /app/apps/web/public ./apps/web/public
-COPY --from=base /app/packages/ui/dist ./packages/ui/dist
+
+# Копируем UI пакет (если есть dist, иначе копируем исходники)
+COPY --from=base /app/packages/ui ./packages/ui
 
 # Копируем необходимые конфигурационные файлы
 COPY apps/web/next.config.js ./apps/web/

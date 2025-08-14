@@ -51,13 +51,13 @@ COPY packages/ui/tsconfig.json ./packages/ui/
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
-ENV PORT=3000
 
-# Открываем порт
+# Открываем порт только для веб-приложения
 EXPOSE 3000
 
-# Переходим в директорию веб-приложения
-WORKDIR /app/apps/web
+# Создаем скрипт для запуска веб-приложения
+RUN echo '#!/bin/sh\n\
+cd /app/apps/web && PORT=3000 pnpm start' > /app/start.sh && chmod +x /app/start.sh
 
-# Запускаем приложение
-CMD ["pnpm", "start"]
+# Запускаем веб-приложение
+CMD ["/app/start.sh"]

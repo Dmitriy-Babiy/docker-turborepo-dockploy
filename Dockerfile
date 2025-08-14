@@ -18,9 +18,8 @@ RUN pnpm install --frozen-lockfile
 # Копируем исходный код
 COPY . .
 
-# Собираем только веб-приложение и UI пакет
+# Собираем только веб-приложение
 RUN pnpm --filter=web build
-RUN pnpm --filter=@repo/ui build
 
 # Этап production
 FROM node:18-alpine AS production
@@ -35,19 +34,20 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/web/package.json ./apps/web/
 
-# Устанавливаем только production зависимости
-RUN pnpm install --frozen-lockfile --prod
+# Устанавливаем зависимости (включая dev для TypeScript)
+RUN pnpm install --frozen-lockfile
 
-# Копируем собранное приложение
+# Копируем собранное веб-приложение
 COPY --from=base /app/apps/web/.next ./apps/web/.next
 COPY --from=base /app/apps/web/public ./apps/web/public
 
-# Копируем UI пакет
-COPY --from=base /app/packages/ui/dist ./packages/ui/dist
+# Копируем UI пакет исходники (TypeScript файлы)
+COPY --from=base /app/packages/ui/src ./packages/ui/src
 
 # Копируем необходимые конфигурационные файлы
 COPY apps/web/next.config.js ./apps/web/
 COPY apps/web/tsconfig.json ./apps/web/
+COPY packages/ui/tsconfig.json ./packages/ui/
 
 # Устанавливаем переменные окружения
 ENV NODE_ENV=production
